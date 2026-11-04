@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<title>TabTo 피드백 반영 현황</title>
+<title>TabTo 피드백 현황</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
 <style>
   :root {
@@ -14,20 +14,29 @@
     --font: "Pretendard", system-ui, -apple-system, "Segoe UI", "Malgun Gothic", sans-serif;
   }
   * { box-sizing: border-box; }
+  html { scrollbar-gutter: stable; }   /* same width with or without a scrollbar, so both pages line up */
   body { margin: 0; background: var(--page); color: var(--ink); font-family: var(--font); font-size: 13px; line-height: 1.5; }
-  .wrap { max-width: 1120px; margin: 0 auto; padding: 22px 24px 40px; }
+  .wrap { max-width: 1760px; margin: 0 auto; padding: 22px 24px 40px; }   /* same frame as the milestone page */
   header.top { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 24px; margin-bottom: 14px; }
   h1 { font-size: 26px; margin: 0 0 2px; letter-spacing: -0.01em; }
   .sub { color: var(--ink-2); font-size: 12px; max-width: 760px; }
   .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
   .btn { border: 1px solid var(--axis); background: var(--surface); padding: 7px 12px; border-radius: 8px; font: inherit; cursor: pointer; color: var(--ink); text-decoration: none; display: inline-flex; align-items: center; }
   .btn:hover { background: #f0efec; }
-  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 8px; }
+  .stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-bottom: 8px; }
+  @media (max-width: 900px) {
+    .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    header.top { flex-direction: column; align-items: flex-start; }
+  }
   .stat { background: var(--surface); border: 1px solid var(--ring); border-radius: 10px; padding: 10px 14px; min-width: 0; }
   .stat .k { color: var(--ink-2); font-size: 12px; }
   .stat .v { font-size: 20px; font-weight: 700; margin-top: 2px; font-variant-numeric: tabular-nums; }
   .stat .d { color: var(--ink-2); font-size: 12px; margin-top: 1px; }
-  .sec-title { font-size: 15px; font-weight: 700; margin: 24px 2px 10px; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
+  .sec-title { font-size: 15px; font-weight: 700; margin: 22px 2px 10px; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
+  .main { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0 16px; }
+  @media (min-width: 1200px) { .main { grid-template-columns: minmax(0, 2fr) minmax(320px, 1fr); align-items: start; } }
+  .side table.tbl { width: 100%; }
+  .note { color: var(--ink-2); font-size: 12px; margin: 10px 2px 0; }
   .sec-title small { font-weight: 400; color: var(--ink-2); font-size: 12px; }
   .grp { background: var(--surface); border: 1px solid var(--ring); border-radius: 12px; padding: 10px 16px 6px; margin-bottom: 10px; }
   .grp h3 { margin: 0 0 4px; font-size: 13px; display: flex; align-items: center; gap: 8px; }
@@ -60,8 +69,10 @@
   .tbl tfoot th { font-weight: 700; }
   .tbl .zero { color: var(--axis); }
   footer { color: var(--muted); font-size: 11px; margin-top: 20px; }
+  @media (max-width: 600px) { .print { display: none; } }
   @media (max-width: 720px) {
     .wrap { padding: 16px 16px 32px; }
+    h1 { font-size: 21px; }
     ul.iss li { grid-template-columns: minmax(0, 1fr); gap: 3px; }
     .iss-when { text-align: left; }
     .iss-when small { display: inline; margin-left: 6px; }
@@ -80,20 +91,27 @@
 <div class="wrap">
   <header class="top">
     <div>
-      <h1>TabTo 피드백 반영 현황</h1>
-      <div class="sub">기준일 2026-11-04 (최근 7일 = 10/29~11/4) · Enterprise(외부 베타 고객)와 Inhouse(자이언트스텝 사내) 피드백을 같은 내용끼리 묶은 요약입니다. 고객사명과 원문은 싣지 않습니다.</div>
+      <h1>TabTo 피드백 현황</h1>
+      <div class="sub">기준일 2026-11-04 · 공유 이슈 8개 · 피드백 8건 (최근 7일: 10/29~11/4)</div>
     </div>
     <div class="controls">
-      <a class="btn" href="index.html">마일스톤 보기</a>
-      <button type="button" class="btn" onclick="window.print()">인쇄 · PDF</button>
+      <a class="btn" href="index.html">마일스톤</a>
+      <button type="button" class="btn print" onclick="window.print()">인쇄 · PDF</button>
     </div>
   </header>
-  <div class="stats"><div class="stat"><div class="k">최근 7일 새 피드백</div><div class="v">8건</div><div class="d">Enterprise 0 · Inhouse 8</div></div><div class="stat"><div class="k">누적 피드백</div><div class="v">8건</div><div class="d">Enterprise 0 · Inhouse 8</div></div><div class="stat"><div class="k">반영 완료</div><div class="v">0개 이슈</div><div class="d">공유 중인 이슈 8개 중</div></div><div class="stat"><div class="k">반영 예정·개발 중</div><div class="v">0개 이슈</div><div class="d">반영 시기는 아래 목록에</div></div><div class="stat"><div class="k">정리 대기</div><div class="v">0건</div><div class="d">아직 이슈로 묶지 않은 피드백</div></div></div>
-  <div class="sec-title">이슈별 반영 현황 <small>같은 내용의 피드백을 하나로 묶었습니다 · 가운데는 의견을 낸 고객사·사내 팀 수입니다</small></div>
-  <section class="grp grp-review"><h3><span class="st st-review"><span aria-hidden="true">…</span>검토 중</span><span class="cnt">8</span></h3><ul class="iss"><li><div class="iss-main"><div class="iss-title">한 노드에 여러 이미지를 연결하면 가끔 다른 이미지가 입력됨</div><div class="iss-meta"><span class="chips"><span class="chip">버그</span><span class="chip">생성 노드·모델</span></span><span>담당 AI 기술본부</span></div></div><div class="iss-who">Inhouse 1팀<small>피드백 1건</small></div><div class="iss-when"><span class="muted">—</span><small>반영 시기</small></div></li><li><div class="iss-main"><div class="iss-title">워크플로우 에셋 즐겨찾기(별표)</div><div class="iss-meta"><span class="chips"><span class="chip">기능 요청</span><span class="chip">캔버스·에디터</span></span><span>담당 AI 기술본부</span></div></div><div class="iss-who">Inhouse 1팀<small>피드백 1건</small></div><div class="iss-when"><span class="muted">—</span><small>반영 시기</small></div></li><li><div class="iss-main"><div class="iss-title">입력 이미지 비율 자동 처리 (원본 비율 유지 또는 모델 비율에 맞춤)</div><div class="iss-meta"><span class="chips"><span class="chip">기능 요청</span><span class="chip">생성 노드·모델</span></span><span>담당 AI 기술본부</span></div></div><div class="iss-who">Inhouse 1팀<small>피드백 1건</small></div><div class="iss-when"><span class="muted">—</span><small>반영 시기</small></div></li><li><div class="iss-main"><div class="iss-title">Wilson이 이전 대화와 작업 맥락을 기억</div><div class="iss-meta"><span class="chips"><span class="chip">기능 요청</span><span class="chip">Wilson 에이전트</span></span><span>담당 AI 기술본부</span></div></div><div class="iss-who">Inhouse 1팀<small>피드백 1건</small></div><div class="iss-when"><span class="muted">—</span><small>반영 시기</small></div></li><li><div class="iss-main"><div class="iss-title">모델별 크레딧 단가 화면 표시</div><div class="iss-meta"><span class="chips"><span class="chip">기능 요청</span><span class="chip">결제·크레딧</span></span><span>담당 AI 기술본부</span></div></div><div class="iss-who">Inhouse 1팀<small>피드백 1건</small></div><div class="iss-when"><span class="muted">—</span><small>반영 시기</small></div></li><li><div class="iss-main"><div class="iss-title">단계별 권장 사용법 가이드 (시안은 저가 모델, 최종본은 고품질 모델)</div><div class="iss-meta"><span class="chips"><span class="chip">안내·문서</span><span class="chip">매뉴얼·FAQ</span></span><span>담당 PM</span><span>마일스톤 C-01</span></div></div><div class="iss-who">Inhouse 1팀<small>피드백 1건</small></div><div class="iss-when"><span class="muted">—</span><small>반영 시기</small></div></li><li><div class="iss-main"><div class="iss-title">3D App·궤적 기능 아이디어, 검토 필요</div><div class="iss-meta"><span class="chips"><span class="chip">기능 요청</span><span class="chip">확장(Apps)</span></span><span>담당 AI 기술본부</span></div></div><div class="iss-who">Inhouse 1팀<small>피드백 1건</small></div><div class="iss-when"><span class="muted">—</span><small>반영 시기</small></div></li><li><div class="iss-main"><div class="iss-title">자동 자막생성·TTS 등의 기능 추가 검토</div><div class="iss-meta"><span class="chips"><span class="chip">기능 요청</span><span class="chip">확장(Apps)</span></span><span>담당 AI 기술본부</span></div></div><div class="iss-who">Inhouse 1팀<small>피드백 1건</small></div><div class="iss-when"><span class="muted">—</span><small>반영 시기</small></div></li></ul></section>
-  <div class="sec-title">유형별 피드백 <small>누적 건수</small></div>
-  <div class="tbl-wrap"><table class="tbl"><thead><tr><th>유형</th><th class="n">Enterprise</th><th class="n">Inhouse</th><th class="n">합계</th></tr></thead><tbody><tr><td>버그</td><td class="n zero">0</td><td class="n">1</td><td class="n">1</td></tr><tr><td>기능 요청</td><td class="n zero">0</td><td class="n">6</td><td class="n">6</td></tr><tr><td>안내·문서</td><td class="n zero">0</td><td class="n">1</td><td class="n">1</td></tr></tbody><tfoot><tr><th>합계</th><th class="n">0</th><th class="n">8</th><th class="n">8</th></tr></tfoot></table></div>
-  <footer>원본: 회사 구글 시트 'TabTo 피드백 로그' (회사 계정 전용) · 공유하기로 한 이슈의 제목·상태·건수만 싣습니다 · 사내 공유용 화면입니다. 회사 밖으로 전달하지 마세요.</footer>
+  <div class="stats"><div class="stat"><div class="k">최근 7일 새 피드백</div><div class="v">8건</div><div class="d">Enterprise 0 · Inhouse 8</div></div><div class="stat"><div class="k">누적 피드백</div><div class="v">8건</div><div class="d">Enterprise 0 · Inhouse 8</div></div><div class="stat"><div class="k">반영 완료</div><div class="v">0개 이슈</div><div class="d">반영 예정·개발 중 0개 · 공유 이슈 8개 중</div></div><div class="stat"><div class="k">정리 대기</div><div class="v">0건</div><div class="d">아직 이슈로 묶지 않은 피드백</div></div></div>
+  <div class="main">
+    <section>
+      <div class="sec-title">이슈별 반영 현황 <small>같은 내용의 피드백을 하나로 묶었습니다 · 가운데 숫자는 의견을 낸 고객사·사내 팀 수입니다</small></div>
+      <section class="grp grp-review"><h3><span class="st st-review"><span aria-hidden="true">…</span>검토 중</span><span class="cnt">8</span></h3><ul class="iss"><li><div class="iss-main"><div class="iss-title">한 노드에 여러 이미지를 연결하면 가끔 다른 이미지가 입력됨</div><div class="iss-meta"><span class="chips"><span class="chip">버그</span><span class="chip">생성 노드·모델</span></span><span>담당 AI 기술본부</span></div></div><div class="iss-who">Inhouse 1팀<small>피드백 1건</small></div><div class="iss-when"><span class="muted">—</span><small>반영 시기</small></div></li><li><div class="iss-main"><div class="iss-title">워크플로우 에셋 즐겨찾기(별표)</div><div class="iss-meta"><span class="chips"><span class="chip">기능 요청</span><span class="chip">캔버스·에디터</span></span><span>담당 AI 기술본부</span></div></div><div class="iss-who">Inhouse 1팀<small>피드백 1건</small></div><div class="iss-when"><span class="muted">—</span><small>반영 시기</small></div></li><li><div class="iss-main"><div class="iss-title">입력 이미지 비율 자동 처리 (원본 비율 유지 또는 모델 비율에 맞춤)</div><div class="iss-meta"><span class="chips"><span class="chip">기능 요청</span><span class="chip">생성 노드·모델</span></span><span>담당 AI 기술본부</span></div></div><div class="iss-who">Inhouse 1팀<small>피드백 1건</small></div><div class="iss-when"><span class="muted">—</span><small>반영 시기</small></div></li><li><div class="iss-main"><div class="iss-title">Wilson이 이전 대화와 작업 맥락을 기억</div><div class="iss-meta"><span class="chips"><span class="chip">기능 요청</span><span class="chip">Wilson 에이전트</span></span><span>담당 AI 기술본부</span></div></div><div class="iss-who">Inhouse 1팀<small>피드백 1건</small></div><div class="iss-when"><span class="muted">—</span><small>반영 시기</small></div></li><li><div class="iss-main"><div class="iss-title">모델별 크레딧 단가 화면 표시</div><div class="iss-meta"><span class="chips"><span class="chip">기능 요청</span><span class="chip">결제·크레딧</span></span><span>담당 AI 기술본부</span></div></div><div class="iss-who">Inhouse 1팀<small>피드백 1건</small></div><div class="iss-when"><span class="muted">—</span><small>반영 시기</small></div></li><li><div class="iss-main"><div class="iss-title">단계별 권장 사용법 가이드 (시안은 저가 모델, 최종본은 고품질 모델)</div><div class="iss-meta"><span class="chips"><span class="chip">안내·문서</span><span class="chip">매뉴얼·FAQ</span></span><span>담당 PM</span><span>마일스톤 C-01</span></div></div><div class="iss-who">Inhouse 1팀<small>피드백 1건</small></div><div class="iss-when"><span class="muted">—</span><small>반영 시기</small></div></li><li><div class="iss-main"><div class="iss-title">3D App·궤적 기능 아이디어, 검토 필요</div><div class="iss-meta"><span class="chips"><span class="chip">기능 요청</span><span class="chip">확장(Apps)</span></span><span>담당 AI 기술본부</span></div></div><div class="iss-who">Inhouse 1팀<small>피드백 1건</small></div><div class="iss-when"><span class="muted">—</span><small>반영 시기</small></div></li><li><div class="iss-main"><div class="iss-title">자동 자막생성·TTS 등의 기능 추가 검토</div><div class="iss-meta"><span class="chips"><span class="chip">기능 요청</span><span class="chip">확장(Apps)</span></span><span>담당 AI 기술본부</span></div></div><div class="iss-who">Inhouse 1팀<small>피드백 1건</small></div><div class="iss-when"><span class="muted">—</span><small>반영 시기</small></div></li></ul></section>
+    </section>
+    <aside class="side">
+      <div class="sec-title">유형별 피드백 <small>누적 건수</small></div>
+      <div class="tbl-wrap"><table class="tbl"><thead><tr><th>유형</th><th class="n">Enterprise</th><th class="n">Inhouse</th><th class="n">합계</th></tr></thead><tbody><tr><td>버그</td><td class="n zero">0</td><td class="n">1</td><td class="n">1</td></tr><tr><td>기능 요청</td><td class="n zero">0</td><td class="n">6</td><td class="n">6</td></tr><tr><td>안내·문서</td><td class="n zero">0</td><td class="n">1</td><td class="n">1</td></tr></tbody><tfoot><tr><th>합계</th><th class="n">0</th><th class="n">8</th><th class="n">8</th></tr></tfoot></table></div>
+      <p class="note">Enterprise = 외부 베타 고객 · Inhouse = 자이언트스텝 사내 팀 · 고객사명과 원문은 싣지 않습니다.</p>
+    </aside>
+  </div>
+  <footer>TabTo 피드백 현황 · 사내 공유용 화면 · 원본은 회사 구글 시트 'TabTo 피드백 로그'(회사 계정 전용)이며, 공유하기로 한 이슈의 제목·상태·건수만 싣습니다. 회사 밖으로 전달하지 마세요.</footer>
 </div>
 </body>
 </html>

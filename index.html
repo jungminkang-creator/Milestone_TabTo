@@ -25,6 +25,7 @@
     --font: "Pretendard", system-ui, -apple-system, "Segoe UI", "Malgun Gothic", sans-serif;
   }
   * { box-sizing: border-box; }
+  html { scrollbar-gutter: stable; }   /* same width with or without a scrollbar, so both pages line up */
   body { margin: 0; background: var(--page); color: var(--ink); font-family: var(--font); font-size: 13px; line-height: 1.45; }
   .wrap { max-width: 1760px; margin: 0 auto; padding: 22px 24px 40px; }
   header.top { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 24px; margin-bottom: 14px; }
@@ -64,6 +65,9 @@
   .lane-label { border-radius: 6px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 4px 8px; gap: 1px; }
   .lane-label .ln { font-weight: 800; font-size: 13px; letter-spacing: 0.02em; line-height: 1.2; }
   .lane-label .lo { font-size: 11px; opacity: 0.92; }
+  .lane-label, .lane-corner { z-index: 7; transform: translateX(var(--sx, 0px)); }   /* stay in view while the timeline scrolls sideways */
+  .lane-corner { background: var(--surface); }
+  .tl.scrolled .lane-label { box-shadow: 6px 0 10px -6px rgba(0, 0, 0, 0.35); }
   .lane-track { background: var(--track); border-radius: 6px; }
   .bar { height: 20px; border-radius: 4px; display: flex; align-items: center; overflow: hidden; font: 600 12px var(--font); white-space: nowrap; cursor: default; z-index: 2; }
   .bar.tent { border: 1.5px dashed; }
@@ -137,6 +141,16 @@
   .share-only { display: none; }
   .share .share-only { display: block; }
   body.dragging .card { outline: 3px dashed var(--ink); outline-offset: 4px; }
+  /* phones and narrow windows: same gutters and header as the feedback page */
+  @media (max-width: 900px) { header.top { flex-direction: column; align-items: flex-start; } }
+  @media (max-width: 720px) {
+    .wrap { padding: 16px 16px 32px; }
+    h1 { font-size: 21px; }
+    .card { padding: 8px; }
+    .lane-label .ln { font-size: 11px; }
+    .lane-label .lo { font-size: 10px; }
+  }
+  @media (max-width: 600px) { #print { display: none; } }
   footer { color: var(--muted); font-size: 11px; margin-top: 18px; }
   @media print {
     @page { size: A3 landscape; margin: 10mm; }
@@ -166,7 +180,7 @@
       </div>
       <button type="button" class="btn primary pm-only" id="load">엑셀 불러오기</button>
       <button type="button" class="btn pm-only" id="export" title="할 일·담당자·메모를 뺀 외부 공유용 index.html을 내려받습니다">공유용 HTML 만들기</button>
-      <a class="btn share-only" href="feedback.html">피드백 반영 현황</a>
+      <a class="btn share-only" href="feedback.html">피드백 현황</a>
       <button type="button" class="btn" id="print">인쇄 · PDF</button>
       <input type="file" id="file" accept=".xlsx,.xlsm" hidden>
     </div>
@@ -409,6 +423,7 @@
     renderSource(D);
     renderStats(D, today);
     renderTimeline(D, today);
+    syncSticky();
     if (!SHARE) {
       renderDeadlines(D, today);
       renderPeople(D, today);
@@ -454,12 +469,20 @@
     return { n: Math.floor(s / 3) + 1, start, end: monthStart(start, 3) };
   }
 
+  function syncSticky() {   // keep the lane labels in view while the timeline scrolls sideways (phones, narrow windows)
+    const sc = $('.tl-scroll'), tl = $('#tl');
+    const x = state.printing ? 0 : sc.scrollLeft;
+    tl.style.setProperty('--sx', x + 'px');
+    tl.classList.toggle('scrolled', x > 0);
+  }
+
   function renderTimeline(D, today) {
     const host = $('#tl');
     host.innerHTML = '';
     const view = viewRange(D, today);
     const W = state.printing ? 1460 : Math.max(980, host.parentElement.clientWidth);
-    const LABEL = 176, LANE_GAP_X = 8, PAD_R = 14;
+    const narrow = !state.printing && host.parentElement.clientWidth < 640;   // phones: slimmer lane labels
+    const LABEL = narrow ? 100 : 176, LANE_GAP_X = 8, PAD_R = 14;
     const trackL = LABEL, trackR = W - PAD_R, trackW = trackR - trackL;
     const t0 = view.start.getTime(), span = view.end.getTime() - t0;
     const X = d => trackL + (d.getTime() - t0) / span * trackW;
@@ -561,6 +584,7 @@
         '<span class="ln">' + esc(name) + '</span><span class="lo">' + sub + '</span>');
       add('lane-track', { left: px(trackL), top: px(lane.y), width: px(trackW), height: px(lane.h) });
     }
+    add('lane-corner', { left: '0px', top: '0px', width: px(LABEL - LANE_GAP_X), height: px(HEAD - 4) });   // hides the header row behind the pinned labels
     for (const v of vlines) add('vline' + (v.strong ? ' strong' : ''), { left: px(Math.round(v.x)), top: px(HEAD - 4), height: px(H - HEAD + 4) });
     const tx = (X(today) + X(addDays(today, 1))) / 2;
     if (tx > trackL) add('past', { left: px(trackL), top: px(HEAD - 4), width: px(Math.min(tx, trackR) - trackL), height: px(H - HEAD + 4) });
@@ -835,6 +859,7 @@
     $('#load').addEventListener('click', () => $('#file').click());
     $('#file').addEventListener('change', e => { loadFile(e.target.files[0]); e.target.value = ''; });
     $('#print').addEventListener('click', () => window.print());
+    $('.tl-scroll').addEventListener('scroll', syncSticky, { passive: true });
     if (!SHARE) {
       addEventListener('dragover', e => { e.preventDefault(); document.body.classList.add('dragging'); });
       addEventListener('dragleave', e => { if (!e.relatedTarget) document.body.classList.remove('dragging'); });
