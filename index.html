@@ -40,6 +40,8 @@
   .seg button[aria-pressed="true"]:hover { background: var(--ink); }
   .btn.primary { background: var(--ink); color: #fff; border-color: var(--ink); font-weight: 600; }
   .btn.primary:hover { background: #2b2b2a; }
+  a.btn { color: var(--ink); text-decoration: none; }
+  .share .controls a.share-only { display: inline-flex; align-items: center; }   /* link to the feedback page */
   .notice { margin: 0 0 12px; padding: 9px 12px; border-radius: 8px; font-size: 12px; }
   .notice.ok { background: #e3f4e3; color: var(--good-ink); }
   .notice.error { background: var(--critical-bg); color: #9b2020; }
@@ -164,6 +166,7 @@
       </div>
       <button type="button" class="btn primary pm-only" id="load">엑셀 불러오기</button>
       <button type="button" class="btn pm-only" id="export" title="할 일·담당자·메모를 뺀 외부 공유용 index.html을 내려받습니다">공유용 HTML 만들기</button>
+      <a class="btn share-only" href="feedback.html">피드백 반영 현황</a>
       <button type="button" class="btn" id="print">인쇄 · PDF</button>
       <input type="file" id="file" accept=".xlsx,.xlsm" hidden>
     </div>

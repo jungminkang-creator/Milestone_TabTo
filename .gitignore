@@ -1,1 +1,5 @@
 .vercel
+# never publish source workbooks or exports (the feedback log holds customer names and raw feedback)
+*.xlsx
+*.xls
+*.csv
