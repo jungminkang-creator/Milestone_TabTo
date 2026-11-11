@@ -1,0 +1,880 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>[11/4 보관본] TabTo Milestone</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<style>
+  :root {
+    color-scheme: light;
+    --page: #f9f9f7;
+    --surface: #fcfcfb;
+    --ink: #0b0b0b;
+    --ink-2: #52514e;
+    --muted: #898781;
+    --grid: #e1e0d9;
+    --axis: #c3c2b7;
+    --track: #f1f0ec;
+    --ring: rgba(11, 11, 11, 0.10);
+    --critical: #d03b3b;
+    --critical-bg: #fbe5e5;
+    --warning-bg: #fff4d9;
+    --good-ink: #006300;
+    --font: "Pretendard", system-ui, -apple-system, "Segoe UI", "Malgun Gothic", sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html { scrollbar-gutter: stable; }   /* same width with or without a scrollbar, so both pages line up */
+  body { margin: 0; background: var(--page); color: var(--ink); font-family: var(--font); font-size: 13px; line-height: 1.45; }
+  .wrap { max-width: 1760px; margin: 0 auto; padding: 22px 24px 40px; }
+  header.top { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 24px; margin-bottom: 14px; }
+  h1 { font-size: 26px; margin: 0 0 2px; letter-spacing: -0.01em; }
+  .sub { color: var(--ink-2); font-size: 12px; }
+  .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .seg { display: inline-flex; border: 1px solid var(--axis); border-radius: 8px; overflow: hidden; background: var(--surface); }
+  .seg button { border: 0; background: transparent; padding: 7px 12px; font: inherit; color: var(--ink-2); cursor: pointer; }
+  .seg button + button { border-left: 1px solid var(--grid); }
+  .seg button[aria-pressed="true"] { background: var(--ink); color: #fff; font-weight: 600; }
+  .btn { border: 1px solid var(--axis); background: var(--surface); padding: 7px 12px; border-radius: 8px; font: inherit; cursor: pointer; color: var(--ink); }
+  .btn:hover, .seg button:hover { background: #f0efec; }
+  .seg button[aria-pressed="true"]:hover { background: var(--ink); }
+  .btn.primary { background: var(--ink); color: #fff; border-color: var(--ink); font-weight: 600; }
+  .btn.primary:hover { background: #2b2b2a; }
+  a.btn { color: var(--ink); text-decoration: none; }
+  .share .controls a.share-only { display: inline-flex; align-items: center; }   /* link to the feedback page */
+  .notice { margin: 0 0 12px; padding: 9px 12px; border-radius: 8px; font-size: 12px; }
+  .notice.ok { background: #e3f4e3; color: var(--good-ink); }
+  .notice.error { background: var(--critical-bg); color: #9b2020; }
+  .notice.warn { background: var(--warning-bg); color: #6a4800; }
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; margin-bottom: 12px; }
+  .stat { background: var(--surface); border: 1px solid var(--ring); border-radius: 10px; padding: 10px 14px; min-width: 0; }
+  .stat .k { color: var(--ink-2); font-size: 12px; }
+  .stat .v { font-size: 17px; font-weight: 700; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .stat .d { color: var(--ink-2); font-size: 12px; margin-top: 1px; }
+  .stat.alert .v { color: var(--critical); }
+  .card { background: var(--surface); border: 1px solid var(--ring); border-radius: 12px; padding: 12px; }
+  .tl-scroll { overflow-x: auto; overflow-y: hidden; }
+  .tl { position: relative; }
+  .tl > div { position: absolute; }
+  .q { background: var(--ink); color: #fff; font-weight: 700; font-size: 12px; display: flex; align-items: center; justify-content: center; border-radius: 3px; white-space: nowrap; overflow: hidden; }
+  .m { color: var(--muted); font-size: 11px; display: flex; align-items: center; justify-content: center; white-space: nowrap; overflow: hidden; }
+  .vline { width: 1px; background: var(--grid); pointer-events: none; }
+  .vline.strong { background: var(--axis); }
+  .past { background: rgba(11, 11, 11, 0.035); pointer-events: none; }
+  .lane-label { border-radius: 6px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 4px 8px; gap: 1px; }
+  .lane-label .ln { font-weight: 800; font-size: 13px; letter-spacing: 0.02em; line-height: 1.2; }
+  .lane-label .lo { font-size: 11px; opacity: 0.92; }
+  .lane-label, .lane-corner { z-index: 7; transform: translateX(var(--sx, 0px)); }   /* stay in view while the timeline scrolls sideways */
+  .lane-corner { background: var(--surface); }
+  .tl.scrolled .lane-label { box-shadow: 6px 0 10px -6px rgba(0, 0, 0, 0.35); }
+  .lane-track { background: var(--track); border-radius: 6px; }
+  .bar { height: 20px; border-radius: 4px; display: flex; align-items: center; overflow: hidden; font: 600 12px var(--font); white-space: nowrap; cursor: default; z-index: 2; }
+  .bar.tent { border: 1.5px dashed; }
+  .bar.late { box-shadow: 0 0 0 2px var(--critical); }
+  .bar .bt { position: relative; min-width: 0; padding: 0 8px; overflow: hidden; text-overflow: ellipsis; }
+  .bar .prog { position: absolute; left: 0; top: 0; bottom: 0; background: rgba(0, 0, 0, 0.22); }
+  .olbl { font: 500 12px var(--font); color: var(--ink); white-space: nowrap; line-height: 20px; height: 20px; z-index: 2; cursor: default; }
+  .olbl.goal { font-weight: 700; }
+  .olbl.late { color: var(--critical); }
+  .dia { width: 12px; height: 12px; transform: rotate(45deg); border: 2px solid; border-radius: 2px; z-index: 3; }
+  .star { font-size: 17px; line-height: 18px; width: 16px; text-align: center; color: var(--ink); z-index: 3; cursor: default; }
+  .today { width: 2px; background: var(--critical); z-index: 5; pointer-events: none; }
+  .today-tag { transform: translateX(-50%); background: var(--critical); color: #fff; font-size: 11px; font-weight: 700; padding: 1px 7px; border-radius: 10px; z-index: 6; white-space: nowrap; pointer-events: none; }
+  [tabindex]:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 18px; color: var(--ink-2); font-size: 12px; margin: 10px 4px 2px; align-items: center; }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .lg-bar { display: inline-block; width: 28px; height: 12px; border-radius: 3px; background: #2a78d6; position: relative; overflow: hidden; }
+  .lg-bar.tent { background: #d4e4f7; border: 1.5px dashed #2a78d6; }
+  .lg-bar .lg-prog { position: absolute; left: 0; top: 0; bottom: 0; width: 50%; background: rgba(0, 0, 0, 0.22); }
+  .lg-dia { display: inline-block; width: 10px; height: 10px; transform: rotate(45deg); background: #2a78d6; border-radius: 1px; }
+  .lg-dia.tent { background: #fff; border: 2px solid #2a78d6; }
+  .lg-today { display: inline-block; width: 2px; height: 14px; background: var(--critical); }
+  .lg-late { color: var(--critical); font-weight: 600; }
+  .sec-title { font-size: 15px; font-weight: 700; margin: 22px 2px 10px; display: flex; align-items: baseline; gap: 10px; }
+  .sec-title small { font-weight: 400; color: var(--ink-2); font-size: 12px; }
+  .dl { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+  @media (max-width: 900px) { .dl { grid-template-columns: 1fr; } }
+  .dl-col { background: var(--surface); border: 1px solid var(--ring); border-radius: 12px; padding: 12px 14px; min-width: 0; }
+  .dl-col h3 { margin: 0 0 8px; font-size: 13px; display: flex; align-items: center; gap: 8px; }
+  .dl-col.late h3 { color: var(--critical); }
+  .dl-col .cnt { background: #f0efec; color: var(--ink-2); border-radius: 10px; padding: 0 8px; font-size: 12px; font-weight: 600; }
+  .dl-col.late .cnt { background: var(--critical-bg); color: #9b2020; }
+  .dl-col ul { list-style: none; margin: 0; padding: 0; }
+  .dl-col li { display: grid; grid-template-columns: 10px minmax(0, 1fr) auto; gap: 8px; padding: 7px 0; border-top: 1px solid var(--grid); align-items: start; }
+  .dl-col li:first-child { border-top: 0; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; margin-top: 4px; }
+  .dl-name { font-weight: 600; }
+  .dl-meta { color: var(--ink-2); font-size: 12px; }
+  .dl-due { text-align: right; font-size: 12px; white-space: nowrap; color: var(--ink-2); }
+  .dl-due small { display: block; color: var(--critical); font-weight: 600; }
+  .empty { color: var(--muted); margin: 4px 0; }
+  .tip { position: fixed; z-index: 50; max-width: 340px; background: #fff; color: var(--ink); border: 1px solid var(--ring); border-radius: 10px; box-shadow: 0 6px 24px rgba(0, 0, 0, 0.14); padding: 10px 12px; font-size: 12px; pointer-events: none; }
+  .tip b { font-size: 13px; }
+  .tip .t-sub { color: var(--ink-2); margin-bottom: 4px; }
+  .tip .t-row { margin-top: 2px; }
+  .tip .t-muted { color: var(--muted); }
+  .tip .t-late { color: var(--critical); font-weight: 600; }
+  .tip .t-list { margin: 6px 0 0; padding: 6px 0 0; list-style: none; border-top: 1px solid var(--grid); }
+  .tip .t-list li { margin: 2px 0; }
+  .tip .t-memo { margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--grid); color: var(--ink-2); }
+  .tip .t-src { margin-top: 4px; color: var(--muted); }
+  .who { display: inline-flex; align-items: center; gap: 6px; color: var(--ink-2); }
+  .who select { font: inherit; color: var(--ink); padding: 6px 8px; border: 1px solid var(--axis); border-radius: 8px; background: var(--surface); }
+  .chk { display: inline-flex; align-items: center; gap: 6px; color: var(--ink-2); cursor: pointer; user-select: none; }
+  #tl .dim { opacity: 0.16; }
+  .chip { display: inline-block; padding: 0 7px; border-radius: 10px; background: #f0efec; color: var(--ink-2); font-size: 11px; line-height: 18px; margin-right: 4px; white-space: nowrap; }
+  .chip.main { background: var(--ink); color: #fff; }
+  .chip.none { background: var(--warning-bg); color: #6a4800; }
+  .tbl-wrap { overflow-x: auto; }
+  .people { width: 100%; border-collapse: separate; border-spacing: 0; background: var(--surface); border: 1px solid var(--ring); border-radius: 12px; overflow: hidden; }
+  .people th, .people td { padding: 8px 12px; border-top: 1px solid var(--grid); text-align: left; font-size: 12px; white-space: nowrap; }
+  .people th { background: #f4f3ef; color: var(--ink-2); font-weight: 600; border-top: 0; }
+  .people .n { text-align: right; font-variant-numeric: tabular-nums; }
+  .people tbody tr { cursor: pointer; }
+  .people tbody tr:hover td { background: #f7f6f2; }
+  .people tbody tr.sel td { background: #e8f0fb; }
+  .people .late { color: var(--critical); font-weight: 700; }
+  .people .muted { color: var(--muted); }
+  .badge { display: inline-block; vertical-align: middle; margin-left: 8px; padding: 2px 9px; border-radius: 10px; background: var(--critical-bg); color: #9b2020; font-size: 12px; font-weight: 700; letter-spacing: 0; }
+  .share .pm-only { display: none !important; }
+  .share-only { display: none; }
+  .share .share-only { display: block; }
+  body.dragging .card { outline: 3px dashed var(--ink); outline-offset: 4px; }
+  /* phones and narrow windows: same gutters and header as the feedback page */
+  @media (max-width: 900px) { header.top { flex-direction: column; align-items: flex-start; } }
+  @media (max-width: 720px) {
+    .wrap { padding: 16px 16px 32px; }
+    h1 { font-size: 21px; }
+    .card { padding: 8px; }
+    .lane-label .ln { font-size: 11px; }
+    .lane-label .lo { font-size: 10px; }
+  }
+  @media (max-width: 600px) { #print { display: none; } }
+  footer { color: var(--muted); font-size: 11px; margin-top: 18px; }
+  @media print {
+    @page { size: A3 landscape; margin: 10mm; }
+    body { background: #fff; }
+    .wrap { max-width: none; padding: 0; }
+    .controls, .notice, .tip, footer { display: none !important; }
+    .card, .stat, .dl-col { border-color: #d9d8d2; }
+    .tl-scroll { overflow: visible; }
+    .dl-col li { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="old-ver" style="display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center;justify-content:space-between;background:#0b0b0b;color:#fff;border-radius:10px;padding:10px 16px;margin:0 0 14px;font-size:13px"><span>이 화면은 <b>11/4 버전</b>(보관본)입니다. 최신 일정은 현재 버전에서 확인하세요.</span><a href="../" style="color:#fff;font-weight:600;text-decoration:underline">현재 버전(11/11) 보기 →</a></div>
+  <header class="top">
+    <div>
+      <h1><span id="title">TabTo Milestone</span><span class="badge pm-only">PM 전용 · 할 일·담당자 포함</span></h1>
+      <div class="sub" id="source"></div>
+    </div>
+    <div class="controls">
+      <label class="who pm-only">담당자 <select id="who" aria-label="담당자 선택"></select></label>
+      <label class="chk pm-only"><input type="checkbox" id="names"> 이름 표시</label>
+      <div class="seg" role="group" aria-label="보기 범위">
+        <button type="button" data-range="all">전체 기간</button>
+        <button type="button" data-range="6m">6개월</button>
+        <button type="button" data-range="3m">3개월</button>
+      </div>
+      <button type="button" class="btn primary pm-only" id="load">엑셀 불러오기</button>
+      <button type="button" class="btn pm-only" id="export" title="할 일·담당자·메모를 뺀 외부 공유용 index.html을 내려받습니다">공유용 HTML 만들기</button>
+      <a class="btn share-only" href="../feedback.html">피드백 현황</a>
+      <button type="button" class="btn" id="print">인쇄 · PDF</button>
+      <input type="file" id="file" accept=".xlsx,.xlsm" hidden>
+    </div>
+  </header>
+  <div id="notice" class="notice" hidden></div>
+  <div class="stats" id="stats"></div>
+  <div class="card">
+    <div class="tl-scroll"><div class="tl" id="tl" role="img" aria-label="분야별 마일스톤 타임라인"></div></div>
+    <div class="legend">
+      <span><i class="lg-bar"></i>기간</span>
+      <span><i class="lg-bar tent"></i>날짜 미확정</span>
+      <span class="pm-only"><i class="lg-bar"><i class="lg-prog"></i></i>진행률 (완료된 할 일 비율)</span>
+      <span><i class="lg-dia"></i>데드라인</span>
+      <span><i class="lg-dia tent"></i>데드라인 (미확정)</span>
+      <span>★ 목표</span>
+      <span>✓ 완료</span>
+      <span class="lg-late">⚠ 지연</span>
+      <span><i class="lg-today"></i>오늘</span>
+    </div>
+  </div>
+  <div class="pm-only">
+  <div class="sec-title">마감 관리 <small id="dlnote">할 일 시트에서 완료되지 않은 일 · 마우스를 올리면 막대의 자세한 내용이 보입니다</small></div>
+  <div class="dl" id="deadlines"></div>
+  <div class="sec-title">담당자별 현황 <small>행을 누르면 그 사람 기준으로 봅니다 · 한 번 더 누르면 전체</small></div>
+  <div class="tbl-wrap"><table class="people" id="people"></table></div>
+  </div>
+  <footer class="share-only">TabTo Enterprise 사업화 마일스톤 · 공유용 화면</footer>
+  <footer class="pm-only">원본: 같은 폴더의 TabTo_Milestone.xlsx · 엑셀을 고친 뒤 '엑셀 불러오기'로 다시 그립니다 (파일을 화면에 끌어다 놓아도 됩니다).</footer>
+</div>
+<div class="tip" id="tip" hidden></div>
+<script>
+(function () {
+  'use strict';
+  const SCHEMA = {"band": "Milestones", "sheets": {"items": "로드맵", "todos": "할 일", "goals": "목표", "people": "담당자", "settings": "설정"}, "items": {"_key": "name", "id": "ID", "lane": "분야", "type": "구분", "name": "항목", "person": "담당자", "others": "참여자", "start": "시작일", "end": "종료일", "status": "상태", "conf": "확정", "memo": "메모", "src": "근거"}, "todos": {"_key": "name", "id": "ID", "name": "할 일", "lane": "분야", "team": "담당 팀", "person": ["담당자", "실무자"], "due": "마감일", "status": "상태", "link": "연결 항목", "done": "완료일", "memo": "메모"}, "goals": {"_key": "metric", "id": "ID", "period": "기간", "metric": "지표", "target": "목표", "unit": "단위", "actual": "실적", "date": "기준일", "show": "타임라인 표시", "label": "표시 이름", "def": "지표 정의", "src": "근거"}, "people": {"_key": "name", "name": "이름", "org": "소속", "role": "역할", "email": "이메일"}, "settings": {"keys": {"title": "제목", "start": "시작일", "end": "종료일", "qStart": "분기 시작 월"}, "lanes": {"name": "분야", "owner": "담당", "color": "색상", "desc": "설명"}}};
+  const EMBEDDED = /*DATA>*/{"settings": {"title": "TabTo Enterprise 사업화 마일스톤", "start": "2026-08-01", "end": "2027-12-31", "qStart": 1}, "lanes": [{"name": "Milestones", "owner": "", "color": "#0b0b0b", "desc": ""}, {"name": "PM", "owner": "강정민", "color": "#2a78d6", "desc": ""}, {"name": "Dev", "owner": "AI 기술본부", "color": "#eb6834", "desc": ""}, {"name": "Business & Sales", "owner": "사업기획팀", "color": "#1baf7a", "desc": ""}, {"name": "Marketing", "owner": "PD3팀", "color": "#eda100", "desc": ""}, {"name": "CS", "owner": "", "color": "#e87ba4", "desc": ""}], "items": [{"id": "M-09", "lane": "Milestones", "type": "기간", "name": "베타 서비스 운영 (B2B)", "start": "2026-09-01", "end": "2026-12-31", "status": "진행", "conf": "Y"}, {"id": "M-01", "lane": "Milestones", "type": "데드라인", "name": "약관 개정 시행 (사업자 전용·계좌이체)", "start": "", "end": "2026-10-10", "status": "완료", "conf": "Y"}, {"id": "M-02", "lane": "Milestones", "type": "데드라인", "name": "출시 범위·런칭일 확정", "start": "", "end": "2026-11-20", "status": "예정", "conf": "N"}, {"id": "M-03", "lane": "Milestones", "type": "데드라인", "name": "카드 결제 오픈", "start": "", "end": "2026-11-30", "status": "예정", "conf": "Y"}, {"id": "M-04", "lane": "Milestones", "type": "데드라인", "name": "정식 요금제 승인", "start": "", "end": "2026-11-30", "status": "예정", "conf": "N"}, {"id": "M-05", "lane": "Milestones", "type": "데드라인", "name": "베타 종료", "start": "", "end": "2026-12-31", "status": "예정", "conf": "Y"}, {"id": "M-06", "lane": "Milestones", "type": "데드라인", "name": "정식 런칭 (유료 전환)", "start": "", "end": "2027-01-04", "status": "예정", "conf": "N"}, {"id": "M-07", "lane": "Milestones", "type": "데드라인", "name": "첫 엔터프라이즈 유료 계약", "start": "", "end": "2027-01-15", "status": "예정", "conf": "N"}, {"id": "M-08", "lane": "Milestones", "type": "기간", "name": "PG·계약", "start": "2026-11-03", "end": "2026-11-27", "status": "예정", "conf": "N"}, {"id": "P-01", "lane": "PM", "type": "기간", "name": "정식 출시를 위한 서비스 방향성 설정/준비", "start": "2026-11-09", "end": "2026-12-18", "status": "예정", "conf": "N"}, {"id": "P-02", "lane": "PM", "type": "기간", "name": "크레딧 정책 (만료·이관·마진)", "start": "2026-11-03", "end": "2026-11-27", "status": "진행", "conf": "N"}, {"id": "P-03", "lane": "PM", "type": "기간", "name": "약관 개정 조정 (카드 결제·정식 런칭)", "start": "2026-11-03", "end": "2026-12-04", "status": "예정", "conf": "N"}, {"id": "P-08", "lane": "PM", "type": "데드라인", "name": "출시 후 첫 서비스 리뷰", "start": "", "end": "2027-02-26", "status": "예정", "conf": "N"}, {"id": "P-09", "lane": "PM", "type": "데드라인", "name": "요금제 개편 1차 리뷰", "start": "", "end": "2027-03-31", "status": "예정", "conf": "N"}, {"id": "P-10", "lane": "PM", "type": "데드라인", "name": "레드씬비전 첫 주문", "start": "", "end": "2026-09-30", "status": "완료", "conf": "Y"}, {"id": "P-11", "lane": "PM", "type": "데드라인", "name": "사업화 전략 수립", "start": "", "end": "2026-10-08", "status": "완료", "conf": "Y"}, {"id": "P-13", "lane": "PM", "type": "데드라인", "name": "홍익대 주문", "start": "", "end": "2026-10-23", "status": "완료", "conf": "Y"}, {"id": "P-14", "lane": "PM", "type": "기간", "name": "베타 피드백 수집·분석, 개발 반영 조율", "start": "2026-11-03", "end": "2026-11-30", "status": "진행", "conf": "Y"}, {"id": "D-01", "lane": "Dev", "type": "기간", "name": "카드 결제 재활성화·QA", "start": "2026-11-09", "end": "2026-11-25", "status": "예정", "conf": "N"}, {"id": "D-02", "lane": "Dev", "type": "데드라인", "name": "정기 릴리스", "start": "", "end": "2026-11-13", "status": "예정", "conf": "N"}, {"id": "D-03", "lane": "Dev", "type": "데드라인", "name": "카드 결제 재오픈 릴리스", "start": "", "end": "2026-11-27", "status": "예정", "conf": "N"}, {"id": "D-04", "lane": "Dev", "type": "기간", "name": "정식 런칭 준비 (보안·부하·DB 분리·온콜)", "start": "2026-11-16", "end": "2026-12-18", "status": "예정", "conf": "N"}, {"id": "D-05", "lane": "Dev", "type": "기간", "name": "베타→유료 크레딧 전환 기능", "start": "2026-12-01", "end": "2026-12-18", "status": "예정", "conf": "N"}, {"id": "D-06", "lane": "Dev", "type": "기간", "name": "코드 프리즈·회귀 테스트", "start": "2026-12-14", "end": "2026-12-30", "status": "예정", "conf": "N"}, {"id": "D-07", "lane": "Dev", "type": "기간", "name": "비용 표시·워크플로우 재사용", "start": "2026-12-01", "end": "2027-03-31", "status": "예정", "conf": "N"}, {"id": "D-08", "lane": "Dev", "type": "기간", "name": "결제 고도화 (기관 일괄 구매)", "start": "2027-01-04", "end": "2027-03-31", "status": "예정", "conf": "N"}, {"id": "D-09", "lane": "Dev", "type": "기간", "name": "사용한도·권한·버전 관리", "start": "2027-04-01", "end": "2027-06-30", "status": "예정", "conf": "N"}, {"id": "D-10", "lane": "Dev", "type": "기간", "name": "분석 대시보드·이상결제 모니터링", "start": "2027-07-01", "end": "2027-09-30", "status": "예정", "conf": "N"}, {"id": "D-11", "lane": "Dev", "type": "데드라인", "name": "카드 결제 약관 공지", "start": "", "end": "2026-11-16", "status": "예정", "conf": "N"}, {"id": "D-12", "lane": "Dev", "type": "데드라인", "name": "정식 런칭 약관 공지", "start": "", "end": "2026-12-04", "status": "예정", "conf": "N"}, {"id": "B-01", "lane": "Business & Sales", "type": "기간", "name": "Enterprise 21곳 확보", "start": "2026-09-15", "end": "2026-11-02", "status": "완료", "conf": "Y"}, {"id": "B-02", "lane": "Business & Sales", "type": "데드라인", "name": "2027 사업계획", "start": "", "end": "2026-10-15", "status": "완료", "conf": "Y"}, {"id": "B-03", "lane": "Business & Sales", "type": "데드라인", "name": "엔터프라이즈 덱·영업 자료", "start": "", "end": "2026-10-27", "status": "완료", "conf": "Y"}, {"id": "B-04", "lane": "Business & Sales", "type": "데드라인", "name": "엔터프라이즈 페이지 시안", "start": "", "end": "2026-10-27", "status": "완료", "conf": "Y"}, {"id": "B-05", "lane": "Business & Sales", "type": "데드라인", "name": "PG 사업계획 작성", "start": "", "end": "2026-11-02", "status": "완료", "conf": "Y"}, {"id": "B-06", "lane": "Business & Sales", "type": "기간", "name": "엔터프라이즈 페이지 공개", "start": "2026-11-02", "end": "2026-11-30", "status": "예정", "conf": "N"}, {"id": "B-07", "lane": "Business & Sales", "type": "기간", "name": "교수 설문·인사이트 보고서", "start": "2026-11-02", "end": "2026-12-31", "status": "진행", "conf": "Y"}, {"id": "B-08", "lane": "Business & Sales", "type": "기간", "name": "Enterprise 점검·집중 고객 선정", "start": "2026-11-03", "end": "2026-11-27", "status": "진행", "conf": "N"}, {"id": "B-09", "lane": "Business & Sales", "type": "기간", "name": "관심 고객 재접촉", "start": "2026-12-01", "end": "2026-12-31", "status": "예정", "conf": "Y"}, {"id": "B-10", "lane": "Business & Sales", "type": "기간", "name": "외부 TabTo Day", "start": "2026-12-01", "end": "2026-12-31", "status": "예정", "conf": "N"}, {"id": "B-11", "lane": "Business & Sales", "type": "기간", "name": "집중 고객 충전 관리", "start": "2026-12-01", "end": "2027-02-26", "status": "예정", "conf": "Y"}, {"id": "B-12", "lane": "Business & Sales", "type": "기간", "name": "핵심 제작사 확보 (20곳)", "start": "2027-01-04", "end": "2027-12-31", "status": "예정", "conf": "N"}, {"id": "B-13", "lane": "Business & Sales", "type": "기간", "name": "기존 Enterprise 유료 전환 (8곳)", "start": "2027-01-04", "end": "2027-12-31", "status": "예정", "conf": "N"}, {"id": "B-14", "lane": "Business & Sales", "type": "기간", "name": "외부 컨퍼런스", "start": "2027-01-04", "end": "2027-02-26", "status": "예정", "conf": "N"}, {"id": "B-15", "lane": "Business & Sales", "type": "기간", "name": "사례·홈페이지 보강", "start": "2027-01-04", "end": "2027-02-26", "status": "예정", "conf": "Y"}, {"id": "B-16", "lane": "Business & Sales", "type": "기간", "name": "교육 봄학기 도입", "start": "2027-02-01", "end": "2027-04-30", "status": "예정", "conf": "N"}, {"id": "B-17", "lane": "Business & Sales", "type": "기간", "name": "컨퍼런스 후속 충전 관리", "start": "2027-03-01", "end": "2027-04-30", "status": "예정", "conf": "N"}, {"id": "B-18", "lane": "Business & Sales", "type": "데드라인", "name": "1Q 사업 리뷰", "start": "", "end": "2027-03-31", "status": "예정", "conf": "N"}, {"id": "B-19", "lane": "Business & Sales", "type": "데드라인", "name": "2Q 사업 리뷰", "start": "", "end": "2027-06-30", "status": "예정", "conf": "N"}, {"id": "B-20", "lane": "Business & Sales", "type": "기간", "name": "교육 가을학기 확대", "start": "2027-08-02", "end": "2027-10-29", "status": "예정", "conf": "N"}, {"id": "B-21", "lane": "Business & Sales", "type": "기간", "name": "TabTo Recipe: Enterprise 업데이트 뉴스 메일 정기 발행", "start": "2026-11-02", "end": "2027-12-31", "status": "예정", "conf": "N"}, {"id": "B-22", "lane": "Business & Sales", "type": "기간", "name": "베타 신규 고객 온보딩", "start": "2026-11-03", "end": "2026-11-17", "status": "진행", "conf": "N"}, {"id": "B-23", "lane": "Business & Sales", "type": "데드라인", "name": "베타 종료·정식 전환 안내 공지", "start": "", "end": "2026-12-01", "status": "예정", "conf": "N"}, {"id": "B-24", "lane": "Business & Sales", "type": "기간", "name": "베타 고객 유료 전환 협의", "start": "2026-12-01", "end": "2026-12-24", "status": "예정", "conf": "N"}, {"id": "B-25", "lane": "Business & Sales", "type": "데드라인", "name": "교수 설문 기획", "start": "", "end": "2026-10-22", "status": "완료", "conf": "Y"}, {"id": "K-01", "lane": "Marketing", "type": "데드라인", "name": "인스타그램 개설·첫 발행", "start": "", "end": "2026-10-21", "status": "완료", "conf": "Y"}, {"id": "K-02", "lane": "Marketing", "type": "기간", "name": "대표 사례 2~3건", "start": "2026-11-02", "end": "2027-01-29", "status": "예정", "conf": "N"}, {"id": "K-03", "lane": "Marketing", "type": "기간", "name": "결제 오픈 홍보", "start": "2026-12-01", "end": "2026-12-31", "status": "예정", "conf": "Y"}, {"id": "C-01", "lane": "CS", "type": "기간", "name": "사용자 매뉴얼 정비", "start": "2026-11-03", "end": "2026-11-27", "status": "진행", "conf": "N"}, {"id": "C-02", "lane": "CS", "type": "기간", "name": "FAQ·헬프센터 오픈", "start": "2026-12-01", "end": "2026-12-18", "status": "예정", "conf": "N"}], "todos": [], "people": [], "goals": [{"id": "G-01", "period": "2026 연말", "metric": "누적 유료 거래액", "target": 50000000, "unit": "원", "actual": 3600000, "date": "2026-12-31", "show": "Y", "label": "연말 누적 거래액 5,000만"}, {"id": "G-02", "period": "2027 1Q", "metric": "카드 승인액", "target": 100000000, "unit": "원", "actual": null, "date": "2027-03-31", "show": "Y", "label": "1Q 카드 승인 1억"}, {"id": "G-03", "period": "2027 2Q", "metric": "카드 승인액", "target": 500000000, "unit": "원", "actual": null, "date": "2027-06-30", "show": "Y", "label": "2Q 카드 승인 5억"}, {"id": "G-04", "period": "2027 3Q", "metric": "카드 승인액", "target": 1000000000, "unit": "원", "actual": null, "date": "2027-09-30", "show": "Y", "label": "3Q 카드 승인 10억"}, {"id": "G-05", "period": "2027 4Q", "metric": "카드 승인액", "target": 1400000000, "unit": "원", "actual": null, "date": "2027-12-31", "show": "Y", "label": "4Q 14억 · 연 30억"}, {"id": "G-06", "period": "2027 연간", "metric": "카드 승인액", "target": 3000000000, "unit": "원", "actual": null, "date": "2027-12-31", "show": "N", "label": "2027 카드 승인 30억"}, {"id": "G-07", "period": "2027", "metric": "핵심 제작사 결제 고객", "target": 20, "unit": "곳", "actual": null, "date": "2027-12-31", "show": "N", "label": "핵심 제작사 20곳"}, {"id": "G-08", "period": "2027", "metric": "성장 제작사 결제 고객", "target": 40, "unit": "곳", "actual": null, "date": "2027-12-31", "show": "N", "label": "성장 제작사 40곳"}, {"id": "G-09", "period": "2027", "metric": "프리랜서·개인 결제 고객", "target": 100, "unit": "명", "actual": null, "date": "2027-12-31", "show": "N", "label": "프리랜서·개인 100명"}, {"id": "G-10", "period": "2027", "metric": "기존 Enterprise 유료 계정", "target": 8, "unit": "곳", "actual": null, "date": "2027-12-31", "show": "N", "label": "기존 Enterprise 8곳"}, {"id": "G-11", "period": "2027", "metric": "교육기관 구매", "target": 40, "unit": "건", "actual": null, "date": "2027-12-31", "show": "N", "label": "교육기관 40건"}, {"id": "G-12", "period": "2028", "metric": "카드 승인액", "target": 8000000000, "unit": "원", "actual": null, "date": "2028-12-31", "show": "N", "label": "2028 카드 승인 80억"}, {"id": "G-13", "period": "2029", "metric": "카드 승인액", "target": 18000000000, "unit": "원", "actual": null, "date": "2029-12-31", "show": "N", "label": "2029 카드 승인 180억"}], "meta": {"generated": "2026-11-04", "share": true}}/*<DATA*/;
+  const MODE = /*MODE>*/'share'/*<MODE*/;   // 'pm' = 할 일·담당자 포함, 'share' = 외부 공유용 (데이터에서 빼고 만든 파일)
+  const SHARE = MODE === 'share';
+  const SOURCE = '<!doctype html>\n' + document.documentElement.outerHTML;   // untouched page, for the share export
+  const BAND = SCHEMA.band;
+  const STATUS = ['예정', '진행', '완료', '지연', '보류'];
+  const FONT_STACK = 'Pretendard, system-ui, -apple-system, "Segoe UI", "Malgun Gothic", sans-serif';
+  const F_BAR = '600 12px ' + FONT_STACK;
+  const F_LBL = '500 12px ' + FONT_STACK;
+  const F_GOAL = '700 12px ' + FONT_STACK;
+  const F_HEAD = '700 12px ' + FONT_STACK;
+  const DAY = 86400000;
+  const FALLBACK = ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4', '#008300', '#6250d6', '#e34948'];
+  const state = { data: null, raw: null, source: { kind: 'embedded' }, range: 'all', printing: false, who: '', showNames: false };
+  const NONE = '__none__';   // person filter value for "담당자 미지정"
+  const $ = s => document.querySelector(s);
+  const px = n => n + 'px';
+
+  // ---------------------------------------------------------------- utils
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const str = v => String(v == null ? '' : v).trim();
+  const splitNames = v => str(v).split(/[,，、·\/]/).map(s => s.trim()).filter(Boolean);
+  const pad = n => String(n).padStart(2, '0');
+  function parseYMD(s) { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s || ''); return m ? new Date(+m[1], +m[2] - 1, +m[3]) : null; }
+  function ymd(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+  function addDays(d, n) { return new Date(d.getFullYear(), d.getMonth(), d.getDate() + n); }
+  function monthStart(d, n) { return new Date(d.getFullYear(), d.getMonth() + (n || 0), 1); }
+  function todayDate() { const n = new Date(); return new Date(n.getFullYear(), n.getMonth(), n.getDate()); }
+  const WD = ['일', '월', '화', '수', '목', '금', '토'];
+  const md = d => (d.getMonth() + 1) + '/' + d.getDate();
+  const mdw = d => md(d) + '(' + WD[d.getDay()] + ')';
+  const daysBetween = (a, b) => Math.round((b - a) / DAY);
+  function fmtDate(s, today) {
+    const d = parseYMD(s); if (!d) return '';
+    return (d.getFullYear() !== today.getFullYear() ? "'" + String(d.getFullYear()).slice(2) + ' ' : '') + mdw(d);
+  }
+  function toYMD(v) {
+    if (v === '' || v == null) return '';
+    if (typeof v === 'number' && isFinite(v)) {           // Excel serial date
+      const d = new Date(Math.round((v - 25569) * DAY));
+      return d.getUTCFullYear() + '-' + pad(d.getUTCMonth() + 1) + '-' + pad(d.getUTCDate());
+    }
+    if (v instanceof Date && !isNaN(v)) return ymd(v);
+    const m = /^(\d{4})[-./](\d{1,2})[-./](\d{1,2})/.exec(str(v));
+    return m ? m[1] + '-' + pad(+m[2]) + '-' + pad(+m[3]) : '';
+  }
+  function num(v) { if (typeof v === 'number') return v; const n = parseFloat(String(v == null ? '' : v).replace(/[,\s원]/g, '')); return isFinite(n) ? n : null; }
+  function hexRgb(h) { const m = /^#?([0-9a-f]{6})$/i.exec(str(h)); if (!m) return null; const n = parseInt(m[1], 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; }
+  function lum(rgb) { const f = c => { c /= 255; return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); }; return 0.2126 * f(rgb[0]) + 0.7152 * f(rgb[1]) + 0.0722 * f(rgb[2]); }
+  function inkOn(hex) { const rgb = hexRgb(hex); if (!rgb) return '#0b0b0b'; return 1.05 / (lum(rgb) + 0.05) >= 3 ? '#ffffff' : '#0b0b0b'; }
+  function tint(hex, a) { const rgb = hexRgb(hex) || [137, 135, 129]; return 'rgb(' + rgb.map(c => Math.round(255 - (255 - c) * a)).join(',') + ')'; }
+  function fmtVal(v, unit) {
+    if (v == null) return '';
+    if (unit === '원') {
+      if (Math.abs(v) >= 1e8) return (+(v / 1e8).toFixed(1)).toLocaleString('ko-KR') + '억';
+      if (Math.abs(v) >= 1e4) return Math.round(v / 1e4).toLocaleString('ko-KR') + '만';
+      return v.toLocaleString('ko-KR') + '원';
+    }
+    return v.toLocaleString('ko-KR') + (unit || '');
+  }
+  const byDue = (a, b) => (a.due || '9999').localeCompare(b.due || '9999');
+  const ctx = document.createElement('canvas').getContext('2d');
+  function measure(text, font) { ctx.font = font; return Math.ceil(ctx.measureText(text).width); }
+
+  // ---------------------------------------------------------------- data
+  function normalize(raw) {
+    const s = raw.settings || {};
+    const q = Math.round(num(s.qStart) || 1);
+    const settings = {
+      title: str(s.title) || 'TabTo Milestone',
+      start: toYMD(s.start) || '2026-08-01',
+      end: toYMD(s.end) || '2027-12-31',
+      qStart: (((q - 1) % 3) + 3) % 3 + 1,
+    };
+    let k = 0;
+    const lanes = (raw.lanes || []).filter(l => str(l.name)).map(l => {
+      const name = str(l.name);
+      const color = hexRgb(l.color) ? '#' + str(l.color).replace('#', '').toLowerCase() : (name === BAND ? '#0b0b0b' : FALLBACK[k % FALLBACK.length]);
+      if (name !== BAND) k++;
+      return { name, owner: str(l.owner), color, desc: str(l.desc) };
+    });
+    const invalid = [];
+    const items = [];
+    for (const r of raw.items || []) {
+      const t = str(r.type);
+      const start = toYMD(r.start), end = toYMD(r.end);
+      const kind = (t.includes('데드') || t.includes('◆') || !start) ? 'deadline' : 'bar';
+      const person = str(r.person), others = splitNames(r.others).filter(n => n !== person);
+      const it = {
+        id: str(r.id), lane: str(r.lane), kind, name: str(r.name), person, others,
+        tags: [person].concat(others).filter(Boolean),
+        start: kind === 'bar' ? start : '', end: kind === 'bar' ? (end || start) : (end || start),
+        status: STATUS.includes(str(r.status)) ? str(r.status) : '예정',
+        conf: str(r.conf).toUpperCase() === 'N' ? 'N' : 'Y', memo: str(r.memo), src: str(r.src),
+      };
+      if (!it.end || (kind === 'bar' && it.end < it.start)) { invalid.push(it.id || it.name); continue; }
+      items.push(it);
+    }
+    const todos = (raw.todos || []).map(r => ({
+      id: str(r.id), name: str(r.name), lane: str(r.lane), team: str(r.team), person: str(r.person),
+      due: toYMD(r.due), status: STATUS.includes(str(r.status)) ? str(r.status) : '예정',
+      link: str(r.link), memo: str(r.memo),
+    })).filter(t => t.name);
+    const goals = (raw.goals || []).map(r => ({
+      id: str(r.id), period: str(r.period), metric: str(r.metric), target: num(r.target), unit: str(r.unit),
+      actual: num(r.actual), date: toYMD(r.date), show: str(r.show).toUpperCase() === 'Y',
+      label: str(r.label) || (str(r.period) + ' ' + str(r.metric)).trim(), def: str(r.def), src: str(r.src),
+    })).filter(g => g.metric || g.label);
+    const people = (raw.people || []).map(p => ({ name: str(p.name), org: str(p.org), role: str(p.role) })).filter(p => p.name);
+    const seen = new Set(people.map(p => p.name));
+    for (const n of items.flatMap(i => i.tags).concat(todos.map(t => t.person))) {
+      if (n && !seen.has(n)) { seen.add(n); people.push({ name: n, org: '', role: '' }); }   // tagged but not in the 담당자 sheet
+    }
+    return { settings, lanes, items, todos, goals, people, invalid, meta: raw.meta || {} };
+  }
+
+  function parseWorkbook(wb) {
+    const rowsOf = name => {
+      const ws = wb.Sheets[name];
+      if (!ws) throw new Error("'" + name + "' 시트가 없습니다");
+      return XLSX.utils.sheet_to_json(ws, { header: 1, raw: true, defval: '', blankrows: true });
+    };
+    const settingRows = rowsOf(SCHEMA.sheets.settings);
+    return {
+      settings: readSettings(settingRows),
+      lanes: readLanes(settingRows),
+      items: readTable(rowsOf(SCHEMA.sheets.items), SCHEMA.items, SCHEMA.sheets.items),
+      todos: readTable(rowsOf(SCHEMA.sheets.todos), SCHEMA.todos, SCHEMA.sheets.todos),
+      goals: readTable(rowsOf(SCHEMA.sheets.goals), SCHEMA.goals, SCHEMA.sheets.goals),
+      people: wb.Sheets[SCHEMA.sheets.people] ? readTable(rowsOf(SCHEMA.sheets.people), SCHEMA.people, SCHEMA.sheets.people) : [],
+    };
+  }
+  function readTable(rows, H, sheet) {
+    const names = h => Array.isArray(h) ? h : [h];          // a header may list older names too
+    const has = (cells, h) => names(h).some(x => cells.includes(x));
+    const hi = rows.findIndex(r => { const c = r.map(str); return has(c, H[H._key]) && (!H.id || has(c, H.id)); });
+    if (hi < 0) throw new Error("'" + sheet + "' 시트에서 머리글(" + names(H[H._key])[0] + ')을 찾지 못했습니다');
+    const hdr = rows[hi].map(str);
+    const col = h => { for (const x of names(h)) { const i = hdr.indexOf(x); if (i >= 0) return i; } return -1; };
+    const out = [];
+    for (const r of rows.slice(hi + 1)) {
+      const o = {};
+      for (const key of Object.keys(H)) {
+        if (key[0] === '_') continue;
+        const i = col(H[key]);
+        o[key] = i >= 0 ? r[i] : '';
+      }
+      if (!str(o.id) && !str(o[H._key])) continue;
+      out.push(o);
+    }
+    return out;
+  }
+  function readSettings(rows) {
+    const out = {};
+    for (const r of rows) for (const key of Object.keys(SCHEMA.settings.keys)) if (str(r[0]) === SCHEMA.settings.keys[key]) out[key] = r[1];
+    return out;
+  }
+  function readLanes(rows) {
+    const L = SCHEMA.settings.lanes;
+    const hi = rows.findIndex(r => str(r[0]) === L.name && str(r[1]) === L.owner);
+    if (hi < 0) return [];
+    const hdr = rows[hi].map(str), col = h => hdr.indexOf(h);
+    const out = [];
+    for (const r of rows.slice(hi + 1)) {
+      if (!str(r[col(L.name)]) || (!str(r[col(L.owner)]) && !hexRgb(r[col(L.color)]))) break;
+      out.push({ name: r[col(L.name)], owner: r[col(L.owner)], color: r[col(L.color)], desc: r[col(L.desc)] });
+    }
+    return out;
+  }
+
+  // ---------------------------------------------------------------- derived
+  const endOf = it => parseYMD(it.end);
+  function isLate(it, today) { return it.status === '지연' || (it.status !== '완료' && it.status !== '보류' && endOf(it) < today); }
+  function todosOf(it) { return state.data.todos.filter(t => t.link && t.link === it.id); }
+  function progressOf(it) { const ts = todosOf(it); const done = ts.filter(t => t.status === '완료').length; return { total: ts.length, done, pct: ts.length ? done / ts.length : 0 }; }
+  function weekBounds(today) {
+    const endW = addDays(today, 6 - ((today.getDay() + 6) % 7));   // this Sunday
+    return { endW, endN: addDays(endW, 7) };
+  }
+  const itemMatch = it => !state.who || (state.who === NONE ? !it.person : it.tags.includes(state.who));
+  const todoMatch = t => !state.who || (state.who === NONE ? !t.person : t.person === state.who);
+  const whoLabel = () => state.who === NONE ? '담당자 미지정' : state.who;
+  function bucketTodos(D, today) {
+    const { endW, endN } = weekBounds(today);
+    const late = [], week = [], next = [];
+    for (const t of D.todos) {
+      if (t.status === '완료' || t.status === '보류' || !t.due || !todoMatch(t)) continue;
+      const d = parseYMD(t.due);
+      if (t.status === '지연' || d < today) late.push(t);
+      else if (d <= endW) week.push(t);
+      else if (d <= endN) next.push(t);
+    }
+    return { late: late.sort(byDue), week: week.sort(byDue), next: next.sort(byDue), endW, endN };
+  }
+  function laneOf(name) { return state.data.lanes.find(l => l.name === name); }
+  function laneColor(name) { const l = laneOf(name); return l ? l.color : '#898781'; }
+
+  // ---------------------------------------------------------------- render
+  function render() {
+    const D = state.data; if (!D) return;
+    const today = todayDate();
+    document.title = D.settings.title;
+    $('#title').textContent = D.settings.title;
+    document.querySelectorAll('[data-range]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.range === state.range)));
+    if (!SHARE) renderWhoSelect(D);
+    renderSource(D);
+    renderStats(D, today);
+    renderTimeline(D, today);
+    syncSticky();
+    if (!SHARE) {
+      renderDeadlines(D, today);
+      renderPeople(D, today);
+    }
+  }
+
+  function renderSource(D) {
+    if (SHARE) { $('#source').textContent = '기준일 ' + (D.meta.generated || '') + ' · 로드맵 ' + D.items.length + '개 항목'; return; }
+    const counts = '로드맵 ' + D.items.length + ' · 할 일 ' + D.todos.length + ' · 목표 ' + D.goals.length;
+    const s = state.source;
+    const src = s.kind === 'excel'
+      ? '엑셀: ' + s.name + ' · ' + pad(s.at.getHours()) + ':' + pad(s.at.getMinutes()) + ' 불러옴'
+      : '내장 데이터 (' + (D.meta.generated || '') + ' 작성) · 엑셀을 불러오면 최신 내용으로 바뀝니다';
+    $('#source').textContent = src + ' · ' + counts + (state.who ? ' · 담당자: ' + whoLabel() : '');
+  }
+
+  function renderStats(D, today) {
+    const goal = D.goals.filter(g => g.show && g.date && parseYMD(g.date) >= today).sort((a, b) => a.date.localeCompare(b.date))[0];
+    const dl = D.items.filter(i => i.kind === 'deadline' && i.status !== '완료' && i.status !== '보류' && endOf(i) >= today && itemMatch(i))
+      .sort((a, b) => a.end.localeCompare(b.end))[0];
+    const b = bucketTodos(D, today);
+    const lateItems = D.items.filter(i => isLate(i, today) && itemMatch(i));
+    const dday = d => { const n = daysBetween(today, d); return n === 0 ? 'D-day' : 'D-' + n; };
+    const tiles = [];
+    if (goal) {
+      const pct = goal.actual != null && goal.target ? ' · 실적 ' + fmtVal(goal.actual, goal.unit) + ' (' + Math.round(goal.actual / goal.target * 100) + '%)' : '';
+      tiles.push(['다음 목표', '★ ' + goal.label, fmtDate(goal.date, today) + ' · ' + dday(parseYMD(goal.date)) + pct, false]);
+    }
+    if (dl) tiles.push(['다음 데드라인', '◆ ' + dl.name, fmtDate(dl.end, today) + ' · ' + dday(endOf(dl)) + ' · ' + dl.lane, false]);
+    tiles.push(['지연', (b.late.length ? '⚠ ' : '') + '할 일 ' + b.late.length + '건', '로드맵 항목 ' + lateItems.length + '건이 마감을 넘김', b.late.length + lateItems.length > 0]);
+    tiles.push(['이번 주 마감', '할 일 ' + b.week.length + '건', '~' + mdw(b.endW) + ' · 다음 주 ' + b.next.length + '건', false]);
+    $('#stats').innerHTML = tiles.filter(t => !SHARE || t[0] === '다음 목표' || t[0] === '다음 데드라인').map(t => '<div class="stat' + (t[3] ? ' alert' : '') + '"><div class="k">' + esc(t[0]) + '</div><div class="v" title="' + esc(t[1]) + '">' + esc(t[1]) + '</div><div class="d">' + esc(t[2]) + '</div></div>').join('');
+  }
+
+  function viewRange(D, today) {
+    if (state.range === '6m') { const s = monthStart(today, -1); return { start: s, end: monthStart(s, 6) }; }
+    if (state.range === '3m') { const s = monthStart(today); return { start: s, end: monthStart(s, 3) }; }
+    return { start: parseYMD(D.settings.start), end: addDays(parseYMD(D.settings.end), 1) };
+  }
+  function quarterOf(d, qStart) {
+    const s = ((d.getMonth() + 1 - qStart) % 12 + 12) % 12;
+    const start = new Date(d.getFullYear(), d.getMonth() - (s % 3), 1);
+    return { n: Math.floor(s / 3) + 1, start, end: monthStart(start, 3) };
+  }
+
+  function syncSticky() {   // keep the lane labels in view while the timeline scrolls sideways (phones, narrow windows)
+    const sc = $('.tl-scroll'), tl = $('#tl');
+    const x = state.printing ? 0 : sc.scrollLeft;
+    tl.style.setProperty('--sx', x + 'px');
+    tl.classList.toggle('scrolled', x > 0);
+  }
+
+  function renderTimeline(D, today) {
+    const host = $('#tl');
+    host.innerHTML = '';
+    const view = viewRange(D, today);
+    const W = state.printing ? 1460 : Math.max(980, host.parentElement.clientWidth);
+    const narrow = !state.printing && host.parentElement.clientWidth < 640;   // phones: slimmer lane labels
+    const LABEL = narrow ? 100 : 176, LANE_GAP_X = 8, PAD_R = 14;
+    const trackL = LABEL, trackR = W - PAD_R, trackW = trackR - trackL;
+    const t0 = view.start.getTime(), span = view.end.getTime() - t0;
+    const X = d => trackL + (d.getTime() - t0) / span * trackW;
+    const HQ = 28, HM = 22, HEAD = HQ + HM + 8, ROW = 28, LPAD = 5, LGAP = 6;
+    host.style.width = px(W);
+    const add = (cls, style, html) => { const e = document.createElement('div'); e.className = cls; Object.assign(e.style, style); if (html != null) e.innerHTML = html; host.appendChild(e); return e; };
+
+    // header: quarters + months
+    const qs = D.settings.qStart, vlines = [], qList = [];
+    for (let q = quarterOf(view.start, qs); q.start < view.end; q = quarterOf(q.end, qs)) {
+      const a = X(q.start < view.start ? view.start : q.start), b = X(q.end > view.end ? view.end : q.end);
+      const yy = String(q.start.getFullYear()).slice(2), last = monthStart(q.start, 2);
+      qList.push({
+        a, w: b - a - 4, clipped: q.start < view.start || q.end > view.end,
+        full: yy + "' Q" + q.n + ' (' + q.start.getFullYear() + '.' + pad(q.start.getMonth() + 1) + '~' + pad(last.getMonth() + 1) + ')',
+        short: yy + "' Q" + q.n,
+      });
+    }
+    // one label format for every whole quarter, so the header doesn't mix long and short names
+    const fits = (q, t, padX) => measure(t, F_HEAD) + padX <= q.w;
+    const allFull = qList.filter(q => !q.clipped).every(q => fits(q, q.full, 16));
+    for (const q of qList) {
+      const label = allFull && fits(q, q.full, 16) ? q.full : fits(q, q.short, 10) ? q.short : '';
+      if (q.w > 4) add('q', { left: px(q.a + 2), top: '0px', width: px(q.w), height: px(HQ) }, esc(label));
+    }
+    for (let m = monthStart(view.start); m < view.end; m = monthStart(m, 1)) {
+      const a = X(m < view.start ? view.start : m), nm = monthStart(m, 1), b = X(nm > view.end ? view.end : nm);
+      const lab = m.getMonth() === 0 ? "1월 '" + String(m.getFullYear()).slice(2) : (m.getMonth() + 1) + '월';
+      add('m', { left: px(a), top: px(HQ + 3), width: px(b - a), height: px(HM) }, b - a >= measure(lab, F_LBL) + 4 ? esc(lab) : '');
+      if (m >= view.start) vlines.push({ x: a, strong: ((m.getMonth() + 1 - qs) % 3 + 3) % 3 === 0 });
+    }
+
+    // marks per lane
+    const bandDef = laneOf(BAND) || { name: BAND, owner: '', color: '#0b0b0b' };
+    const band = { def: bandDef, band: true, marks: [] };
+    const lanes = D.lanes.filter(l => l.name !== BAND).map(def => ({ def, marks: [] }));
+    const byName = new Map(lanes.map(l => [l.def.name, l]));
+    let misc = null;
+    const nameTag = it => state.showNames && it.person ? ' · ' + it.person + (it.others.length ? ' 외 ' + it.others.length : '') : '';
+    const textOf = it => (it.status === '완료' ? '✓ ' : isLate(it, today) ? '⚠ ' : it.status === '보류' ? '보류 · ' : '') + it.name + nameTag(it);
+    function pointGeom(dateStr, text, font) {
+      const d = parseYMD(dateStr); const cx = (X(d) + X(addDays(d, 1))) / 2;
+      if (cx < trackL - 1 || cx > trackR + 1) return null;
+      const lw = measure(text, font);
+      return cx + 10 + lw <= trackR ? { cx, ext1: cx - 8, ext2: cx + 10 + lw, side: 'right', lw } : { cx, ext1: cx - 10 - lw, ext2: cx + 8, side: 'left', lw };
+    }
+    function barGeom(it, text) {
+      const a = X(parseYMD(it.start)), b = X(addDays(parseYMD(it.end), 1));
+      if (b <= trackL || a >= trackR) return null;
+      const x1 = Math.max(a, trackL), x2 = Math.min(b, trackR);
+      let side = 'in', e1 = x1, e2 = x2, lw = 0;
+      if (measure(text, F_BAR) + 22 > x2 - x1) {   // 8px padding each side + dashed border + slack
+        lw = measure(text, F_LBL);
+        if (x2 + 6 + lw <= trackR) { side = 'right'; e2 = x2 + 6 + lw; }
+        else if (x1 - 6 - lw >= trackL) { side = 'left'; e1 = x1 - 6 - lw; }
+        else side = 'trunc';
+      }
+      return { x1, x2, ext1: e1, ext2: e2, side, lw, clipL: a < trackL, clipR: b > trackR };
+    }
+    for (const it of D.items) {
+      let lane = it.lane === BAND ? band : byName.get(it.lane);
+      if (!lane) { if (!misc) misc = { def: { name: '기타', owner: '설정에 없는 분야', color: '#898781' }, marks: [] }; lane = misc; }
+      const text = textOf(it);
+      const g = it.kind === 'deadline' ? pointGeom(it.end, text, F_LBL) : barGeom(it, text);
+      if (g) lane.marks.push(Object.assign(g, { type: it.kind, it, text, font: F_LBL }));
+    }
+    for (const gl of D.goals) {
+      if (!gl.show || !gl.date) continue;
+      const text = gl.label + (gl.actual != null && gl.target ? ' · 실적 ' + fmtVal(gl.actual, gl.unit) + ' (' + Math.round(gl.actual / gl.target * 100) + '%)' : '');
+      const g = pointGeom(gl.date, text, F_GOAL);
+      if (g) band.marks.push(Object.assign(g, { type: 'goal', goal: gl, text, font: F_GOAL }));
+    }
+
+    // pack rows, lay out lanes
+    const all = [band].concat(lanes, misc ? [misc] : []);
+    let y = HEAD;
+    for (const lane of all) {
+      lane.marks.sort((p, q) => p.ext1 - q.ext1 || p.ext2 - q.ext2);
+      const ends = [];
+      for (const m of lane.marks) {
+        let r = ends.findIndex(e => e + 8 <= m.ext1);
+        if (r < 0) { r = ends.length; ends.push(m.ext2); } else ends[r] = m.ext2;
+        m.row = r;
+      }
+      const rowsH = Math.max(1, ends.length) * ROW;
+      lane.y = y; lane.h = Math.max(rowsH + LPAD * 2, 42);   // room for the two-line label box
+      lane.pad = (lane.h - rowsH) / 2;
+      y += lane.h + LGAP;
+    }
+    const H = y - LGAP + 2;
+    host.style.height = px(H);
+
+    // backgrounds, grid, past shade
+    for (const lane of all) {
+      const c = lane.def.color, fg = inkOn(c);
+      const name = lane.band ? 'MILESTONES' : lane.def.name;
+      const sub = lane.band ? '목표·핵심일정' : lane.def.owner ? esc(lane.def.owner) : SHARE ? '' : '담당 미정';
+      add('lane-label', { left: '0px', top: px(lane.y), width: px(LABEL - LANE_GAP_X), height: px(lane.h), background: c, color: fg },
+        '<span class="ln">' + esc(name) + '</span><span class="lo">' + sub + '</span>');
+      add('lane-track', { left: px(trackL), top: px(lane.y), width: px(trackW), height: px(lane.h) });
+    }
+    add('lane-corner', { left: '0px', top: '0px', width: px(LABEL - LANE_GAP_X), height: px(HEAD - 4) });   // hides the header row behind the pinned labels
+    for (const v of vlines) add('vline' + (v.strong ? ' strong' : ''), { left: px(Math.round(v.x)), top: px(HEAD - 4), height: px(H - HEAD + 4) });
+    const tx = (X(today) + X(addDays(today, 1))) / 2;
+    if (tx > trackL) add('past', { left: px(trackL), top: px(HEAD - 4), width: px(Math.min(tx, trackR) - trackL), height: px(H - HEAD + 4) });
+
+    // marks
+    for (const lane of all) {
+      for (const m of lane.marks) {
+        const top = lane.y + lane.pad + m.row * ROW;
+        if (m.type === 'bar') drawBar(m, top, lane);
+        else drawPoint(m, top, lane);
+      }
+    }
+    if (tx >= trackL && tx <= trackR) {
+      add('today', { left: px(tx - 1), top: px(HQ + 2), height: px(H - HQ - 2) });
+      add('today-tag', { left: px(tx), top: px(HQ + 4) }, '오늘 ' + esc(md(today)));
+    }
+
+    function drawBar(m, top, lane) {
+      const it = m.it, color = lane.def.color, late = isLate(it, today);
+      const tent = it.conf === 'N', hold = it.status === '보류';
+      const el = document.createElement('div');
+      const dim = itemMatch(it) ? '' : ' dim';
+      el.className = 'bar' + (tent ? ' tent' : '') + (late ? ' late' : '') + dim;
+      Object.assign(el.style, {
+        left: px(m.x1), top: px(top + 4), width: px(Math.max(4, m.x2 - m.x1)),
+        background: hold ? '#e1e0d9' : tent ? tint(color, 0.24) : color,
+        color: hold ? '#52514e' : tent ? '#0b0b0b' : inkOn(color), borderColor: color,
+      });
+      if (m.clipL) { el.style.borderTopLeftRadius = '0'; el.style.borderBottomLeftRadius = '0'; }
+      if (m.clipR) { el.style.borderTopRightRadius = '0'; el.style.borderBottomRightRadius = '0'; }
+      const p = progressOf(it);
+      if (!tent && !hold && it.status !== '완료' && p.pct > 0) { const pr = document.createElement('i'); pr.className = 'prog'; pr.style.width = (p.pct * 100) + '%'; el.appendChild(pr); }
+      if (m.side === 'in' || m.side === 'trunc') { const t = document.createElement('span'); t.className = 'bt'; t.textContent = m.text; el.appendChild(t); }
+      host.appendChild(el);
+      bindTip(el, () => itemTip(it, lane, today), m.text);
+      if (m.side === 'right' || m.side === 'left') {
+        const l = document.createElement('div');
+        l.className = 'olbl' + (late ? ' late' : '') + dim;
+        l.textContent = m.text;
+        Object.assign(l.style, { left: px(m.side === 'right' ? m.x2 + 6 : m.x1 - 6 - m.lw), top: px(top + 4), width: px(m.lw + 2) });
+        host.appendChild(l);
+        bindTip(l, () => itemTip(it, lane, today), null);
+      }
+    }
+    function drawPoint(m, top, lane) {
+      const cy = top + 14, el = document.createElement('div');
+      let late = false, tipFn;
+      if (m.type === 'goal') {
+        el.className = 'star'; el.textContent = '★';
+        Object.assign(el.style, { left: px(m.cx - 8), top: px(cy - 9) });
+        tipFn = () => goalTip(m.goal, today);
+      } else {
+        const it = m.it, color = lane.band ? '#0b0b0b' : lane.def.color, tent = it.conf === 'N';
+        late = isLate(it, today);
+        el.className = 'dia' + (itemMatch(it) ? '' : ' dim');
+        Object.assign(el.style, { left: px(m.cx - 6), top: px(cy - 6), background: tent ? '#ffffff' : color, borderColor: late ? 'var(--critical)' : color });
+        tipFn = () => itemTip(it, lane, today);
+      }
+      host.appendChild(el);
+      bindTip(el, tipFn, m.text);
+      const l = document.createElement('div');
+      l.className = 'olbl' + (m.type === 'goal' ? ' goal' : '') + (late ? ' late' : '') + (m.type !== 'goal' && !itemMatch(m.it) ? ' dim' : '');
+      l.textContent = m.text;
+      Object.assign(l.style, { left: px(m.side === 'right' ? m.cx + 10 : m.cx - 10 - m.lw), top: px(cy - 10), width: px(m.lw + 2) });
+      host.appendChild(l);
+      bindTip(l, tipFn, null);
+    }
+  }
+
+  function renderDeadlines(D, today) {
+    const b = bucketTodos(D, today);
+    $('#dlnote').textContent = state.who ? whoLabel() + ' 기준 · 완료되지 않은 할 일' : '할 일 시트에서 완료되지 않은 일 · 마우스를 올리면 막대의 자세한 내용이 보입니다';
+    const row = t => {
+      const d = parseYMD(t.due), link = t.link ? D.items.find(i => i.id === t.link) : null;
+      const who = (t.person ? '<span class="chip main">' + esc(t.person) + '</span>' : '<span class="chip none">담당자 미지정</span>') + esc(t.team || '');
+      const over = d < today ? '<small>' + daysBetween(d, today) + '일 지남</small>' : '';
+      return '<li><span class="dot" style="background:' + esc(laneColor(t.lane)) + '"></span>' +
+        '<div><div class="dl-name">' + esc(t.name) + '</div><div class="dl-meta">' + who + ' · ' + esc(t.lane || '분야 미정') +
+        (link ? ' · ' + esc(link.name) : '') + '</div></div><div class="dl-due">' + esc(fmtDate(t.due, today)) + over + '</div></li>';
+    };
+    const col = (title, list, cls, empty) => '<section class="dl-col ' + cls + '"><h3>' + title + ' <span class="cnt">' + list.length + '</span></h3>' +
+      (list.length ? '<ul>' + list.map(row).join('') + '</ul>' : '<p class="empty">' + empty + '</p>') + '</section>';
+    $('#deadlines').innerHTML =
+      col('⚠ 지연', b.late, 'late', '지연된 할 일이 없습니다') +
+      col('이번 주 · ~' + esc(mdw(b.endW)), b.week, 'week', '이번 주 마감이 없습니다') +
+      col('다음 주 · ' + esc(md(addDays(b.endW, 1))) + '~' + esc(md(b.endN)), b.next, 'next', '다음 주 마감이 없습니다');
+  }
+
+  // ---------------------------------------------------------------- people (담당자 태깅)
+  const isOpen = t => t.status !== '완료' && t.status !== '보류';
+  function renderWhoSelect(D) {
+    const openOf = n => D.todos.filter(t => t.person === n && isOpen(t)).length;
+    const noneN = D.items.filter(i => !i.person && i.status !== '완료').length + D.todos.filter(t => !t.person && isOpen(t)).length;
+    if (state.who && state.who !== NONE && !D.people.some(p => p.name === state.who)) state.who = '';
+    $('#who').innerHTML = ['<option value="">전체</option>']
+      .concat(D.people.map(p => '<option value="' + esc(p.name) + '">' + esc(p.name) + (p.org ? ' · ' + esc(p.org) : '') + ' (할 일 ' + openOf(p.name) + ')</option>'))
+      .concat('<option value="' + NONE + '">담당자 미지정 (' + noneN + ')</option>').join('');
+    $('#who').value = state.who;
+  }
+  function renderPeople(D, today) {
+    const { endW, endN } = weekBounds(today);
+    const row = (key, name, sub, im, tm) => {
+      const items = D.items.filter(i => im(i) && i.status !== '완료').length;
+      const todos = D.todos.filter(t => tm(t) && isOpen(t));
+      let late = 0, week = 0, next = 0, first = null;
+      for (const t of todos) {
+        const d = parseYMD(t.due);
+        if (!d) continue;
+        if (t.status === '지연' || d < today) late++; else if (d <= endW) week++; else if (d <= endN) next++;
+        if (!first || d < first) first = d;
+      }
+      const due = first ? (first < today ? '<span class="late">' : '<span>') + esc(fmtDate(ymd(first), today)) + '</span>' : '<span class="muted">—</span>';
+      return '<tr data-key="' + esc(key) + '"' + (state.who === key ? ' class="sel"' : '') + '><td><b>' + esc(name) + '</b></td>' +
+        '<td class="muted">' + esc(sub) + '</td><td class="n">' + items + '</td><td class="n">' + todos.length + '</td>' +
+        '<td class="n">' + week + '</td><td class="n">' + next + '</td><td class="n' + (late ? ' late' : '') + '">' + late + '</td><td>' + due + '</td></tr>';
+    };
+    const body = D.people.map(p => row(p.name, p.name, [p.org, p.role].filter(Boolean).join(' · '), i => i.tags.includes(p.name), t => t.person === p.name))
+      .concat(row(NONE, '담당자 미지정', '사람이 정해지지 않은 항목·할 일', i => !i.person, t => !t.person));
+    $('#people').innerHTML = '<thead><tr><th>담당자</th><th>소속 · 역할</th><th class="n">남은 로드맵</th><th class="n">열린 할 일</th>' +
+      '<th class="n">이번 주</th><th class="n">다음 주</th><th class="n">지연</th><th>가장 이른 마감</th></tr></thead><tbody>' + body.join('') + '</tbody>';
+  }
+  function setWho(v) {
+    state.who = v || '';
+    try { history.replaceState(null, '', state.who ? '#who=' + encodeURIComponent(state.who === NONE ? 'none' : state.who) : location.pathname + location.search); } catch (e) { /* some file:// pages refuse */ }
+    render();
+  }
+
+  // ---------------------------------------------------------------- tooltips
+  const tip = $('#tip');
+  function bindTip(el, fn, aria) {
+    if (aria) { el.tabIndex = 0; el.setAttribute('aria-label', aria); }
+    const place = ev => {
+      const r = tip.getBoundingClientRect();
+      let x, y;
+      if (ev && ev.type !== 'focus') { x = ev.clientX + 14; y = ev.clientY + 14; } else { const bb = el.getBoundingClientRect(); x = bb.left; y = bb.bottom + 8; }
+      if (x + r.width > innerWidth - 8) x = Math.max(8, x - r.width - 28);
+      if (y + r.height > innerHeight - 8) y = Math.max(8, y - r.height - 28);
+      tip.style.left = px(x); tip.style.top = px(y);
+    };
+    const show = ev => { tip.innerHTML = fn(); tip.hidden = false; place(ev); };
+    const hide = () => { tip.hidden = true; };
+    el.addEventListener('mouseenter', show);
+    el.addEventListener('mousemove', place);
+    el.addEventListener('mouseleave', hide);
+    el.addEventListener('focus', show);
+    el.addEventListener('blur', hide);
+  }
+  function statusHtml(it, today) {
+    if (it.status === '완료') return '✓ 완료';
+    if (isLate(it, today)) { const n = daysBetween(endOf(it), today); return '<span class="t-late">⚠ 지연' + (n > 0 ? ' (마감 ' + n + '일 지남)' : '') + '</span>'; }
+    const n = daysBetween(today, endOf(it));
+    const dd = it.status === '보류' ? '' : ' · ' + (n === 0 ? 'D-day' : 'D-' + n);
+    return ({ '진행': '● 진행', '예정': '○ 예정', '보류': '보류' }[it.status] || it.status) + dd;
+  }
+  function tagsHtml(it) {
+    const main = it.person ? '<span class="chip main">' + esc(it.person) + '</span>' : '<span class="chip none">담당자 미지정</span>';
+    return main + it.others.map(n => '<span class="chip">' + esc(n) + '</span>').join('');
+  }
+  function shareTip(it, today) {
+    const when = it.kind === 'deadline' ? fmtDate(it.end, today) : fmtDate(it.start, today) + ' ~ ' + fmtDate(it.end, today);
+    return '<b>' + esc(it.name) + '</b><div class="t-sub">' + esc(it.lane) + '</div><div class="t-row">' + esc(when) + '</div>' +
+      '<div class="t-row">' + statusHtml(it, today) + '</div>' + (it.conf === 'N' ? '<div class="t-row t-muted">날짜 미확정 (계획)</div>' : '');
+  }
+  function itemTip(it, lane, today) {
+    if (SHARE) return shareTip(it, today);
+    const when = it.kind === 'deadline' ? '마감 ' + fmtDate(it.end, today) : fmtDate(it.start, today) + ' ~ ' + fmtDate(it.end, today);
+    const p = progressOf(it), ts = todosOf(it).sort(byDue);
+    const icon = t => t.status === '완료' ? '✓' : (t.status === '지연' || (t.due && parseYMD(t.due) < today)) ? '⚠' : t.status === '진행' ? '●' : '○';
+    return '<b>' + esc(it.name) + '</b>' +
+      '<div class="t-sub">' + esc(it.id) + ' · ' + esc(it.lane) + '</div>' +
+      '<div class="t-row">' + tagsHtml(it) + '</div>' +
+      '<div class="t-row">' + esc(when) + '</div>' +
+      '<div class="t-row">' + statusHtml(it, today) + (p.total ? ' · 할 일 ' + p.done + '/' + p.total + ' 완료' : '') + '</div>' +
+      (it.conf === 'N' ? '<div class="t-row t-muted">날짜 미확정 (계획)</div>' : '') +
+      (ts.length ? '<ul class="t-list">' + ts.slice(0, 6).map(t => '<li>' + icon(t) + ' ' + esc(t.name) + ' <span class="t-muted">' + esc(fmtDate(t.due, today)) + (t.person ? ' · ' + esc(t.person) : '') + '</span></li>').join('') +
+        (ts.length > 6 ? '<li class="t-muted">외 ' + (ts.length - 6) + '건</li>' : '') + '</ul>' : '') +
+      (it.memo ? '<div class="t-memo">' + esc(it.memo) + '</div>' : '') +
+      (it.src ? '<div class="t-src">근거: ' + esc(it.src) + '</div>' : '');
+  }
+  function goalTip(g, today) {
+    const pct = g.actual != null && g.target ? ' (' + Math.round(g.actual / g.target * 100) + '%)' : '';
+    return '<b>★ ' + esc(g.label) + '</b><div class="t-sub">' + esc(g.id) + ' · ' + esc(g.period) + ' · ' + esc(g.metric) + '</div>' +
+      '<div class="t-row">목표 ' + esc(fmtVal(g.target, g.unit)) + ' · 기준일 ' + esc(fmtDate(g.date, today)) + '</div>' +
+      '<div class="t-row">실적 ' + (g.actual != null ? esc(fmtVal(g.actual, g.unit)) + pct : '아직 없음') + '</div>' +
+      (g.def ? '<div class="t-memo">' + esc(g.def) + '</div>' : '') + (g.src ? '<div class="t-src">근거: ' + esc(g.src) + '</div>' : '');
+  }
+
+  // ---------------------------------------------------------------- loading
+  function notice(msg, kind) {
+    const n = $('#notice');
+    if (!msg) { n.hidden = true; return; }
+    n.className = 'notice ' + (kind || 'ok'); n.textContent = msg; n.hidden = false;
+  }
+  function warnInvalid() {
+    const bad = state.data.invalid;
+    if (bad.length) notice('날짜가 비어 있거나 잘못된 로드맵 항목 ' + bad.length + '개는 타임라인에서 뺐습니다: ' + bad.join(', '), 'warn');
+  }
+  async function loadWorkbook(buf, name) {
+    if (!window.XLSX) { notice('엑셀을 읽는 도구(SheetJS)를 불러오지 못했습니다. 인터넷 연결을 확인한 뒤 새로고침해 주세요.', 'error'); return false; }
+    try {
+      const wb = XLSX.read(buf, { type: 'array', cellDates: false });
+      state.raw = parseWorkbook(wb);
+      state.data = normalize(state.raw);
+      state.source = { kind: 'excel', name, at: new Date() };
+      notice(name + '을(를) 불러왔습니다.', 'ok');
+      warnInvalid();
+      render();
+      return true;
+    } catch (e) {
+      notice('엑셀을 읽지 못했습니다: ' + e.message, 'error');
+      return false;
+    }
+  }
+  async function loadFile(file) { if (file) await loadWorkbook(await file.arrayBuffer(), file.name); }
+
+  // ---------------------------------------------------------------- share export (외부 공유용)
+  // Only what the share page shows goes into its file: no to-dos, people, memos or sources.
+  function sanitizeForShare(raw) {
+    const D = normalize(raw);
+    return {
+      settings: { title: D.settings.title, start: D.settings.start, end: D.settings.end, qStart: D.settings.qStart },
+      // lane owners stay (the PM lane shows its owner); per-item and per-to-do people do not
+      lanes: D.lanes.map(l => ({ name: l.name, owner: l.owner === '(미정)' ? '' : l.owner, color: l.color, desc: '' })),
+      items: D.items.map(i => ({ id: i.id, lane: i.lane, type: i.kind === 'deadline' ? '데드라인' : '기간', name: i.name,
+        start: i.start, end: i.end, status: i.status, conf: i.conf })),
+      todos: [], people: [],
+      goals: D.goals.map(g => ({ id: g.id, period: g.period, metric: g.metric, target: g.target, unit: g.unit, actual: g.actual,
+        date: g.date, show: g.show ? 'Y' : 'N', label: g.label })),
+      meta: { generated: ymd(todayDate()), share: true },
+    };
+  }
+  function buildShareHtml() {
+    const json = JSON.stringify(sanitizeForShare(state.raw)).replace(/<\//g, '<\\/');
+    return SOURCE
+      .replace(/\/\*MODE>\*\/[\s\S]*?\/\*<MODE\*\//, () => "/*MODE>*/'share'/*<MODE*/")
+      .replace(/\/\*DATA>\*\/[\s\S]*?\/\*<DATA\*\//, () => '/*DATA>*/' + json + '/*<DATA*/')
+      .replace(/<script src="[^"]*xlsx[^"]*"><\/script>\s*/, '');
+  }
+  function exportShare() {
+    const url = URL.createObjectURL(new Blob([buildShareHtml()], { type: 'text/html;charset=utf-8' }));
+    const a = document.createElement('a');
+    a.href = url; a.download = 'index.html';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+    notice('공유용 index.html을 내려받았습니다. 할 일·담당자·메모는 빠져 있습니다. vercel-share 폴더의 index.html을 이 파일로 바꾼 뒤 다시 배포하세요.', 'ok');
+  }
+  window.__milestone = { loadWorkbook, state, buildShareHtml };
+
+  function init() {
+    try { const r = localStorage.getItem('tabto-milestone-range'); if (['all', '6m', '3m'].includes(r)) state.range = r; } catch (e) { /* storage unavailable */ }
+    if (SHARE) document.body.classList.add('share');
+    state.raw = EMBEDDED;
+    state.data = normalize(EMBEDDED);
+    warnInvalid();
+    document.querySelectorAll('[data-range]').forEach(b => b.addEventListener('click', () => {
+      state.range = b.dataset.range;
+      try { localStorage.setItem('tabto-milestone-range', state.range); } catch (e) { /* storage unavailable */ }
+      render();
+    }));
+    try { state.showNames = !SHARE && localStorage.getItem('tabto-milestone-names') === '1'; } catch (e) { /* storage unavailable */ }
+    const hm = SHARE ? null : /[#&]who=([^&]+)/.exec(location.hash);
+    if (hm) { const v = decodeURIComponent(hm[1]); state.who = v === 'none' ? NONE : v; }
+    $('#export').addEventListener('click', exportShare);
+    $('#names').checked = state.showNames;
+    $('#names').addEventListener('change', e => {
+      state.showNames = e.target.checked;
+      try { localStorage.setItem('tabto-milestone-names', state.showNames ? '1' : '0'); } catch (err) { /* storage unavailable */ }
+      render();
+    });
+    $('#who').addEventListener('change', e => setWho(e.target.value));
+    $('#people').addEventListener('click', e => { const tr = e.target.closest('tr[data-key]'); if (tr) setWho(state.who === tr.dataset.key ? '' : tr.dataset.key); });
+    $('#load').addEventListener('click', () => $('#file').click());
+    $('#file').addEventListener('change', e => { loadFile(e.target.files[0]); e.target.value = ''; });
+    $('#print').addEventListener('click', () => window.print());
+    $('.tl-scroll').addEventListener('scroll', syncSticky, { passive: true });
+    if (!SHARE) {
+      addEventListener('dragover', e => { e.preventDefault(); document.body.classList.add('dragging'); });
+      addEventListener('dragleave', e => { if (!e.relatedTarget) document.body.classList.remove('dragging'); });
+      addEventListener('drop', e => { e.preventDefault(); document.body.classList.remove('dragging'); loadFile(e.dataTransfer.files[0]); });
+    }
+    let t;
+    addEventListener('resize', () => { clearTimeout(t); t = setTimeout(render, 120); });
+    addEventListener('beforeprint', () => { state.printing = true; render(); });
+    addEventListener('afterprint', () => { state.printing = false; render(); });
+    render();
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(render);
+  }
+  init();
+})();
+</script>
+</body>
+</html>
